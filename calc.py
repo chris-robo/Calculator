@@ -40,8 +40,6 @@ def match_whitespace(s:str):
 def tokenize(s: str) -> List[Token_Type]:
     tokens = []
     while s:
-        # skip whitespace
-
         if s[0] == "+":
             c,*s = s
             tokens.append((Token_Kind.PLUS,c))
@@ -122,12 +120,43 @@ def parse(tokens:List[Token_Type])->List[Token_Type]:
         out.append(ops.pop())
     return out
 
+def evaluate(tokens:List[Token_Type]):
+    stack = []
+    for token in tokens:
+        if token[0] == Token_Kind.INT:
+            stack.append(token)
+        elif token[0] == Token_Kind.PLUS:
+            b = stack.pop()[1]
+            a = stack.pop()[1]
+            c = (Token_Kind.INT,a+b)
+            stack.append(c)
+        elif token[0] == Token_Kind.MINUS:
+            b = stack.pop()[1]
+            a = stack.pop()[1]
+            c = (Token_Kind.INT,a-b)
+            stack.append(c)
+        elif token[0] == Token_Kind.ASTERISK:
+            b = stack.pop()[1]
+            a = stack.pop()[1]
+            c = (Token_Kind.INT,a*b)
+            stack.append(c)
+        elif token[0] == Token_Kind.SLASH:
+            b = stack.pop()[1]
+            a = stack.pop()[1]
+            c = (Token_Kind.INT,a/b)
+            stack.append(c)
+    assert len(stack) == 1
+    return stack.pop()
+
 
 tokens = tokenize("1    +3*9*((7) + 3) ")
-instr = parse(tokens)
 for token in tokens:
     print(token)
 
+instr = parse(tokens)
 print()
 for token in instr:
     print(token)
+
+result = evaluate(instr)
+print(f"{result=}")
