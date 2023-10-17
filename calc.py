@@ -10,7 +10,8 @@ class Token_Kind(enum.Enum):
     SLASH = enum.auto(),
     LPAREN = enum.auto(),
     RPAREN = enum.auto(),
-    FUNC = enum.auto()
+    FUNC = enum.auto(),
+    COMMA = enum.auto(),
 
 
 Token_Type = Tuple[Token_Kind, str]
@@ -39,7 +40,7 @@ def match_whitespace(s:str):
     return match_sequence_in_range(s,WHITES)
 
 def match_funcs(s:str):
-    FUNCS = ["sq"]
+    FUNCS = ["sq","if"]
     s_low = s.lower()
     for func in FUNCS:
         if s.startswith(func):
@@ -82,6 +83,10 @@ def tokenize(s: str) -> List[Token_Type]:
             tokens.append((Token_Kind.RPAREN,c))
             _,s = match_whitespace(s)
             continue
+        elif s[0] == ",":
+            c,s = s[:1],s[1:]
+            tokens.append((Token_Kind.COMMA,c))
+            _,s = match_whitespace(s)
 
 
         xl_func,s = match_funcs(s)
@@ -106,10 +111,13 @@ def tokenize(s: str) -> List[Token_Type]:
     return tokens
 
 op_prec = {
+    Token_Kind.COMMA: 0,
+    Token_Kind.FUNC:0,
     Token_Kind.PLUS: 1,
     Token_Kind.MINUS: 1,
     Token_Kind.ASTERISK: 2,
     Token_Kind.SLASH:2,
+
 }
 
 
@@ -120,7 +128,7 @@ def parse(tokens:List[Token_Type])->List[Token_Type]:
     for token in tokens:
         if token[0] == Token_Kind.INT:
             out.append(token)
-        elif token[0] in [Token_Kind.PLUS, Token_Kind.MINUS, Token_Kind.ASTERISK, Token_Kind.SLASH]:
+        elif token[0] in [Token_Kind.PLUS, Token_Kind.MINUS, Token_Kind.ASTERISK, Token_Kind.SLASH, Token_Kind.COMMA]:
             if len(ops) == 0:
                 ops.append(token)
             else:
@@ -129,18 +137,23 @@ def parse(tokens:List[Token_Type])->List[Token_Type]:
                 elif op_prec[ops[-1][0]] < op_prec[token[0]]: # see mult was add
                     ops.append(token)
                 else: # see add was mult
-                    while ops and ops[-1][0] != Token_Kind.LPAREN and not op_prec[ops[-1][0]] < op_prec[token[0]]:#...
+                    while ops and ops[-1][0] not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not op_prec[ops[-1][0]] < op_prec[token[0]]:#...
                         out.append(ops.pop())
                     ops.append(token)
         elif token[0] == Token_Kind.LPAREN:
             ops.append(token)
         elif token[0] == Token_Kind.RPAREN:
             while ops and ops[-1][0] != Token_Kind.LPAREN:
-                out.append(ops.pop())
+                if ops[-1][0] == Token_Kind.COMMA:
+                    _ = ops.pop()
+                else:
+                    out.append(ops.pop())
             if ops and ops[-1][0] == Token_Kind.FUNC:
                 out.append(ops.pop())
             lp = ops.pop()
         elif token[0] == Token_Kind.FUNC:
+            ops.append(token)
+        elif token[0] == Token_Kind.COMMA:
             ops.append(token)
         else:
             raise NotImplementedError(f"Unparsable token: {token}")
@@ -176,9 +189,22 @@ def evaluate(tokens:List[Token_Type]):
             stack.append(c)
         elif token[0] == Token_Kind.FUNC:
             if token[1] == "sq":
+                assert not len(stack) < 1, "Not enough arguments for sq function"
                 a = stack.pop()[1]
                 b = (Token_Kind.INT,a*a)
                 stack.append(b)
+            elif token[1] == "if":
+                assert not len(stack) < 3, "Not enough arguments for if function"
+                false_val = stack.pop()[1]
+                true_val = stack.pop()[1]
+                condition = stack.pop()[1]
+                if condition != 0:
+                    stack.append((Token_Kind.INT, true_val))
+                else:
+                    stack.append((Token_Kind.INT,false_val))
+            else:
+                raise NotImplementedError(f"Cannot evaluate unknown function: {token}")
+
         else:
             raise NotImplementedError(f"Cannot evaluate unknown token: {token}")
     assert len(stack) == 1
@@ -187,7 +213,9 @@ def evaluate(tokens:List[Token_Type]):
 
 # tokens = tokenize("1    +3*9*((7) + 3) ")
 # tokens = tokenize("1 + sq(2)")
-tokens = tokenize("1    +3*9*sq((7) + 3) ")
+# tokens = tokenize("1    +3*9*sq((7) + 3) ")
+# tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)")
+tokens = tokenize("if(1,if(if(0,0,1),2,3),4)")
 for token in tokens:
     print(token)
 
