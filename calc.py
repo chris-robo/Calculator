@@ -50,6 +50,7 @@ def match_funcs(s:str):
 
 
 def tokenize(s: str) -> List[Token_Type]:
+    assert s, "Empty Input"
     start = s
     tokens = []
     while s:
@@ -209,6 +210,13 @@ def evaluate(tokens:List[Token_Type]):
             raise NotImplementedError(f"Cannot evaluate unknown token: {token}")
     assert len(stack) == 1
     return stack.pop()
+
+
+def terminal(s:str):
+    tokens = tokenize(s)
+    ops = parse(tokens)
+    res = evaluate(ops)
+    print(res)
 
 
 # tokens = tokenize("1    +3*9*((7) + 3) ")
