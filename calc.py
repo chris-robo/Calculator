@@ -218,19 +218,19 @@ def terminal(s:str):
     res = evaluate(ops)
     print(res)
 
+if __name__ == "__main__":
+    # tokens = tokenize("1    +3*9*((7) + 3) ")
+    # tokens = tokenize("1 + sq(2)")
+    # tokens = tokenize("1    +3*9*sq((7) + 3) ")
+    # tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)")
+    tokens = tokenize("if(1,if(if(0,0,1),2,3),4)")
+    for token in tokens:
+        print(token)
 
-# tokens = tokenize("1    +3*9*((7) + 3) ")
-# tokens = tokenize("1 + sq(2)")
-# tokens = tokenize("1    +3*9*sq((7) + 3) ")
-# tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)")
-tokens = tokenize("if(1,if(if(0,0,1),2,3),4)")
-for token in tokens:
-    print(token)
+    instr = parse(tokens)
+    print()
+    for token in instr:
+        print(token)
 
-instr = parse(tokens)
-print()
-for token in instr:
-    print(token)
-
-result = evaluate(instr)
-print(f"{result=}")
+    result = evaluate(instr)
+    print(f"{result=}")
