@@ -45,7 +45,7 @@ def match_funcs(s:str):
     FUNCS = ["sq","if"]
     s_low = s.lower()
     for func in FUNCS:
-        if s.startswith(func):
+        if s_low.startswith(func):
             func_len = len(func)
             return s[:func_len], s[func_len:]
     return "",s
