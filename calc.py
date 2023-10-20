@@ -113,35 +113,38 @@ def tokenize(s: str) -> List[Token_Type]:
 
 op_prec = {
     Token_Kind.COMMA: 0,
-    Token_Kind.FUNC:0,
     Token_Kind.PLUS: 1,
     Token_Kind.MINUS: 1,
     Token_Kind.ASTERISK: 2,
     Token_Kind.SLASH:2,
-
+    Token_Kind.FUNC:3,
+    Token_Kind.LPAREN:3,
 }
 
+LIT_KINDS = [
+    Token_Kind.INT
+]
+
+OP_KINDS =  [
+    Token_Kind.PLUS, 
+    Token_Kind.MINUS, 
+    Token_Kind.ASTERISK, 
+    Token_Kind.SLASH, 
+    Token_Kind.COMMA, 
+    Token_Kind.FUNC, 
+    Token_Kind.LPAREN
+]
 
 def parse(tokens:List[Token_Type])->List[Token_Type]:
     ops = []
     out = []
 
     for token in tokens:
-        if token[0] == Token_Kind.INT:
+        if token[0] in LIT_KINDS:
             out.append(token)
-        elif token[0] in [Token_Kind.PLUS, Token_Kind.MINUS, Token_Kind.ASTERISK, Token_Kind.SLASH, Token_Kind.COMMA]:
-            if len(ops) == 0:
-                ops.append(token)
-            else:
-                if ops[-1][0] == Token_Kind.LPAREN:
-                    ops.append(token)
-                elif op_prec[ops[-1][0]] < op_prec[token[0]]: # see mult was add
-                    ops.append(token)
-                else: # see add was mult
-                    while ops and ops[-1][0] not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not op_prec[ops[-1][0]] < op_prec[token[0]]:#...
-                        out.append(ops.pop())
-                    ops.append(token)
-        elif token[0] == Token_Kind.LPAREN:
+        elif token[0] in OP_KINDS:
+            while ops and ops[-1][0] not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not op_prec[ops[-1][0]] < op_prec[token[0]]:#...
+                out.append(ops.pop())
             ops.append(token)
         elif token[0] == Token_Kind.RPAREN:
             while ops and ops[-1][0] != Token_Kind.LPAREN:
@@ -152,10 +155,6 @@ def parse(tokens:List[Token_Type])->List[Token_Type]:
             if ops and ops[-1][0] == Token_Kind.FUNC:
                 out.append(ops.pop())
             lp = ops.pop()
-        elif token[0] == Token_Kind.FUNC:
-            ops.append(token)
-        elif token[0] == Token_Kind.COMMA:
-            ops.append(token)
         else:
             raise NotImplementedError(f"Unparsable token: {token}")
     
@@ -219,11 +218,11 @@ def terminal(s:str):
     print(res)
 
 if __name__ == "__main__":
-    # tokens = tokenize("1    +3*9*((7) + 3) ")
+    tokens = tokenize("1    +3*9*((7) + 3) ") # 271
     # tokens = tokenize("1 + sq(2)")
-    # tokens = tokenize("1    +3*9*sq((7) + 3) ")
-    # tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)")
-    tokens = tokenize("if(1,if(if(0,0,1),2,3),4)")
+    # tokens = tokenize("1    +3*9*sq((7) + 3) ") # 2701
+    # tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)") # 1000010
+    # tokens = tokenize("if(1,if(if(0,0,1),2,3),4)") # =2
     for token in tokens:
         print(token)
 
