@@ -3,15 +3,15 @@ import enum
 
 
 class Token_Kind(enum.Enum):
-    INT = enum.auto(),
-    PLUS = enum.auto(),
-    MINUS = enum.auto(),
-    ASTERISK = enum.auto(),
-    SLASH = enum.auto(),
-    LPAREN = enum.auto(),
-    RPAREN = enum.auto(),
-    FUNC = enum.auto(),
-    COMMA = enum.auto(),
+    INT         = enum.auto(),
+    PLUS        = enum.auto(),
+    MINUS       = enum.auto(),
+    ASTERISK    = enum.auto(),
+    SLASH       = enum.auto(),
+    LPAREN      = enum.auto(),
+    RPAREN      = enum.auto(),
+    FUNC        = enum.auto(),
+    COMMA       = enum.auto(),
 
 
 Token_Type = Tuple[Token_Kind, str]
@@ -23,6 +23,7 @@ def match_sequence_in_range(s:str,rs:Iterator[Iterator])->Tuple[str,str]:
         out += c
     return out,s
 
+
 def match_range(s:str,rs:Iterator[Iterator]):
     c = ""
     if s and any(ord(s[0]) in r for r in rs):
@@ -30,14 +31,15 @@ def match_range(s:str,rs:Iterator[Iterator]):
     return c,s
 
 
-
 def match_digits(s:str):
     DIGITS = [range(ord("0"),ord("9")+1)]
     return match_sequence_in_range(s,DIGITS)
 
+
 def match_whitespace(s:str):
     WHITES = [[ord(c) for c in [" ", "\t"]]]
     return match_sequence_in_range(s,WHITES)
+
 
 def match_funcs(s:str):
     FUNCS = ["sq","if"]
@@ -111,6 +113,7 @@ def tokenize(s: str) -> List[Token_Type]:
 
     return tokens
 
+
 op_prec = {
     Token_Kind.COMMA: 0,
     Token_Kind.PLUS: 1,
@@ -136,6 +139,7 @@ OP_KINDS =  [
 ]
 
 def parse(tokens:List[Token_Type])->List[Token_Type]:
+    '''Translate infix notation to postfix notation.'''
     ops = []
     out = []
 
@@ -161,6 +165,7 @@ def parse(tokens:List[Token_Type])->List[Token_Type]:
     while ops:
         out.append(ops.pop())
     return out
+
 
 def evaluate(tokens:List[Token_Type]):
     stack = []
@@ -211,11 +216,12 @@ def evaluate(tokens:List[Token_Type]):
     return stack.pop()
 
 
-def terminal(s:str):
+def calculate(s:str):
     tokens = tokenize(s)
     ops = parse(tokens)
     res = evaluate(ops)
-    print(res)
+    return res[1]
+
 
 if __name__ == "__main__":
     tokens = tokenize("1    +3*9*((7) + 3) ") # 271
