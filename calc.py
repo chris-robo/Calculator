@@ -1,4 +1,4 @@
-from typing import List, Tuple, Iterator, Union
+from typing import List, Tuple, Iterator, Union, Callable
 import enum
 
 import dataclasses
@@ -124,12 +124,19 @@ def tokenize(s: str) -> List[Token]:
 # TODO: Once input is tokenized, validate against grammar
 # eg 6 ( * 8) is valid and returns 48.
 def validate(tokens: List[Token]):
+    def test_all(tests:List[Callable]):
+        for test in tests:
+            if not test:
+                return False
+        return True
+
+
     def validate_scopes(tokens: List[Token]):
         depth = 0
         for token in tokens:
             if token.kind == Token_Kind.LPAREN:
                 depth += 1
-            elif token.kind == Token_Kind. RPAREN:
+            elif token.kind == Token_Kind.RPAREN:
                 depth -= 1
             
             if depth < 0:
@@ -141,8 +148,8 @@ def validate(tokens: List[Token]):
             return False
         return True
 
-    tests = [validate_scopes(tokens)]
-    return all(tests)
+
+    return test_all([validate_scopes(tokens)])
     
 
 
@@ -154,7 +161,7 @@ op_prec = {
     Token_Kind.ASTERISK: 2,
     Token_Kind.SLASH: 2,
     Token_Kind.FUNC: 3,
-    Token_Kind.LPAREN: 3,
+    Token_Kind.LPAREN: 4,
 }
 
 LIT_KINDS = [
@@ -271,13 +278,16 @@ def calculate(s: str):
 def print_tokens(tokens:List[Token]):
     print(" ".join(str(token.value) for token in tokens))
 
-
-if __name__ == "__main__":
+def terminal():
     while True:
         r = calculate(input("> "))
         if r is not None:
             print(r)
-    source = "1    +3*9*((7) + 3) "
+
+if __name__ == "__main__":
+    # terminal()
+    # source = "1    +3*9*((7) + 3) "
+    source = "sq(sq(2))"
     tokens = tokenize(source)  # 271
     # tokens = tokenize("1 + sq(2)")
     # tokens = tokenize("1    +3*9*sq((7) + 3) ") # 2701
