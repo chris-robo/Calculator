@@ -7,6 +7,7 @@ import dataclasses
 class Token_Kind(enum.Enum):
     INT = enum.auto(),
     FLOAT = enum.auto(),
+    STRING = enum.auto(),
     PLUS = enum.auto(),
     MINUS = enum.auto(),
     ASTERISK = enum.auto(),
@@ -68,9 +69,53 @@ def match_whitespace(s: str):
     WHITES = [[ord(c) for c in [" ", "\t"]]]
     return match_sequence_in_range(s, WHITES)
 
+def match_escape_sequence(s:str):
+    start = s
+    if not (s and s[0] == "\\"):
+        return "",start
+    _, s = s[:1], s[1,]
+    c, s = s[:1], s[1,]
+    if c == "\\":
+        return "\\",s
+    elif c == "n":
+        return "\n",s
+    elif c == "t":
+        return "\t",s
+    elif c =="\"":
+        return "\""
+    elif c == "\'":
+        return "\'"
+    else:
+        assert False, f"undefined escape sequence: '\{c}'"
+
+
+def match_string(s:str):
+    str_seps = ["\"", "'"]
+
+    start = s
+    if not (s and s[0] in str_seps):
+        return None,start
+
+    str_sep,s = s[:1], s[1:]
+
+    str_text = ""
+    while True:
+        if len(s) == 0:
+            return None,start
+        elif s[0] == str_sep:
+            _,s = s[:1], s[1:]
+            return str_text,s
+        elif s[0] == "\\":
+            esc,s = match_escape_sequence(s)
+            str_text += esc
+            continue
+        else:
+            c,s = s[:1], s[1:]
+            str_text += c
+
 
 def match_funcs(s: str):
-    FUNCS = ["sq", "if",]
+    FUNCS = ["sq", "if","type"]
     s_low = s.lower()
     for func in FUNCS:
         if s_low.startswith(func):
@@ -118,6 +163,12 @@ def tokenize(s: str) -> List[Token]:
             c, s = s[:1], s[1:]
             tokens.append(Token(Token_Kind.COMMA, c))
             _, s = match_whitespace(s)
+
+        str_str, s = match_string(s)
+        if str_str is not None:
+            tokens.append(Token(Token_Kind.STRING,str_str))
+            _,s = match_whitespace(s)
+            continue
 
         fun_str, s = match_funcs(s)
         if fun_str:
@@ -180,6 +231,7 @@ def validate(tokens: List[Token]):
 LIT_KINDS = [
     Token_Kind.INT,
     Token_Kind.FLOAT,
+    Token_Kind.STRING,
 ]
 
 # higher = more precise
@@ -252,6 +304,7 @@ def make_token(a:Union[int,float])-> Token:
     else:
         assert False, f"Unknown type '{type(a)}' of value '{a}'"
 
+
 def evaluate(tokens: List[Token]):
     stack: List[Token] = []
     for token in tokens:
@@ -292,6 +345,10 @@ def evaluate(tokens: List[Token]):
                     stack.append(make_token(true_val))
                 else:
                     stack.append(make_token(false_val))
+            elif token.value == "type":
+                assert not len(stack) < 1, "Not enough arguments for type function"
+                a = stack.pop().kind
+                stack.append(Token(Token_Kind.STRING,a))
             else:
                 raise NotImplementedError(
                     f"Cannot evaluate unknown function: {token}")
