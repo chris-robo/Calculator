@@ -124,7 +124,27 @@ def tokenize(s: str) -> List[Token]:
 # TODO: Once input is tokenized, validate against grammar
 # eg 6 ( * 8) is valid and returns 48.
 def validate(tokens: List[Token]):
-    pass
+    def validate_scopes(tokens: List[Token]):
+        depth = 0
+        for token in tokens:
+            if token.kind == Token_Kind.LPAREN:
+                depth += 1
+            elif token.kind == Token_Kind. RPAREN:
+                depth -= 1
+            
+            if depth < 0:
+                print("Unmatched right parenthesis")
+                return False
+        
+        if depth != 0:
+            print("Unmatched left parenthesis")
+            return False
+        return True
+
+    tests = [validate_scopes(tokens)]
+    return all(tests)
+    
+
 
 
 op_prec = {
@@ -242,19 +262,21 @@ def evaluate(tokens: List[Token]):
 
 def calculate(s: str):
     tokens = tokenize(s)
-    ops = parse(tokens)
-    res = evaluate(ops)
-    return res.value
+    if not validate(tokens): return None
+    instructions = parse(tokens)
+    result = evaluate(instructions)
+    return result.value
 
 
 def print_tokens(tokens:List[Token]):
     print(" ".join(str(token.value) for token in tokens))
 
-# TODO: validate
 
 if __name__ == "__main__":
-    # while True:
-    #     print(calculate(input("> ")))
+    while True:
+        r = calculate(input("> "))
+        if r is not None:
+            print(r)
     source = "1    +3*9*((7) + 3) "
     tokens = tokenize(source)  # 271
     # tokens = tokenize("1 + sq(2)")
