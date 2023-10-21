@@ -3,9 +3,10 @@ import enum
 
 import dataclasses
 
-
+## TODO: add floating point support
 class Token_Kind(enum.Enum):
     INT = enum.auto(),
+    FLOAT = enum.auto(),
     PLUS = enum.auto(),
     MINUS = enum.auto(),
     ASTERISK = enum.auto(),
@@ -40,9 +41,27 @@ def match_range(s: str, rs: Iterator[Iterator]):
     return c, s
 
 
-def match_digits(s: str):
+def match_digits(s: str)-> Tuple[str,str]:
     DIGITS = [range(ord("0"), ord("9")+1)]
     return match_sequence_in_range(s, DIGITS)
+
+def match_float(s:str) -> Tuple[str,str]:
+    start = s
+    flt_int, s = match_digits(s)
+    if not flt_int:
+        return "", start
+    
+    if not (s and s[0] == "."):
+        return "",start
+
+    _, s = s[:1], s[1:]
+
+
+    flt_frac, s = match_digits(s) # this can be empty, as in 1.
+
+
+    flt_str = f"{flt_int}.{flt_frac}"
+    return flt_str, s
 
 
 def match_whitespace(s: str):
@@ -51,7 +70,7 @@ def match_whitespace(s: str):
 
 
 def match_funcs(s: str):
-    FUNCS = ["sq", "if"]
+    FUNCS = ["sq", "if",]
     s_low = s.lower()
     for func in FUNCS:
         if s_low.startswith(func):
@@ -100,15 +119,21 @@ def tokenize(s: str) -> List[Token]:
             tokens.append(Token(Token_Kind.COMMA, c))
             _, s = match_whitespace(s)
 
-        xl_func, s = match_funcs(s)
-        if xl_func:
-            tokens.append(Token(Token_Kind.FUNC, xl_func))
+        fun_str, s = match_funcs(s)
+        if fun_str:
+            tokens.append(Token(Token_Kind.FUNC, fun_str))
             _, s = match_whitespace(s)
             continue
 
-        xl_int, s = match_digits(s)
-        if xl_int:
-            tokens.append(Token(Token_Kind.INT, int(xl_int)))
+        flt_str, s = match_float(s)
+        if flt_str:
+            tokens.append(Token(Token_Kind.FLOAT, float(flt_str)))
+            _, s = match_whitespace(s)
+            continue
+
+        int_str, s = match_digits(s)
+        if int_str:
+            tokens.append(Token(Token_Kind.INT, int(int_str)))
             _, s = match_whitespace(s)
             continue
 
@@ -152,9 +177,18 @@ def validate(tokens: List[Token]):
     return test_all([validate_scopes(tokens)])
     
 
+LIT_KINDS = [
+    Token_Kind.INT,
+    Token_Kind.FLOAT,
+]
 
+# higher = more precise
+LIT_PREC = {
+    Token_Kind.INT:0,
+    Token_Kind.FLOAT:1,
+}
 
-op_prec = {
+OP_PREC = {
     Token_Kind.COMMA: 0, # TODO: compare this to precedence 4
     Token_Kind.PLUS: 1,
     Token_Kind.MINUS: 1,
@@ -163,10 +197,6 @@ op_prec = {
     Token_Kind.FUNC: 3,
     Token_Kind.LPAREN: 4,
 }
-
-LIT_KINDS = [
-    Token_Kind.INT
-]
 
 OP_KINDS = [
     Token_Kind.PLUS,
@@ -194,7 +224,7 @@ def parse(tokens: List[Token]) -> List[Token]:
         if token.kind in LIT_KINDS:
             out.append(token)
         elif token.kind in OP_KINDS:
-            while ops and peek(ops).kind not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not op_prec[peek(ops).kind] < op_prec[token.kind]:
+            while ops and peek(ops).kind not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not OP_PREC[peek(ops).kind] < OP_PREC[token.kind]:
                 out.append(ops.pop())
             ops.append(token)
         elif token.kind == Token_Kind.RPAREN:
@@ -214,52 +244,57 @@ def parse(tokens: List[Token]) -> List[Token]:
     return out
 
 
+def make_token(a:Union[int,float])-> Token:
+    if isinstance(a, int):
+        return Token(Token_Kind.INT,a)
+    elif isinstance(a, float):
+        return Token(Token_Kind.FLOAT,a)
+    else:
+        assert False, f"Unknown type '{type(a)}' of value '{a}'"
+
 def evaluate(tokens: List[Token]):
     stack: List[Token] = []
     for token in tokens:
-        if token.kind == Token_Kind.INT:
+        if token.kind in LIT_KINDS:
             stack.append(token)
         elif token.kind == Token_Kind.PLUS:
             b = stack.pop().value
             a = stack.pop().value
-            c = Token(Token_Kind.INT, a+b)
-            stack.append(c)
+            c = a+b
+            stack.append(make_token(c))
         elif token.kind == Token_Kind.MINUS:
             b = stack.pop().value
             a = stack.pop().value
-            c = Token(Token_Kind.INT, a-b)
-            stack.append(c)
+            c = a-b
+            stack.append(make_token(c))
         elif token.kind == Token_Kind.ASTERISK:
             b = stack.pop().value
             a = stack.pop().value
-            c = Token(Token_Kind.INT, a*b)
-            stack.append(c)
+            c = a*b
+            stack.append(make_token(c))
         elif token.kind == Token_Kind.SLASH:
             b = stack.pop().value
             a = stack.pop().value
-            c = Token(Token_Kind.INT, a/b)
-            stack.append(c)
+            c = a/b    
+            stack.append(make_token(c))
         elif token.kind == Token_Kind.FUNC:
             if token.value == "sq":
-                assert not len(
-                    stack) < 1, "Not enough arguments for sq function"
+                assert not len(stack) < 1, "Not enough arguments for sq function"
                 a = stack.pop().value
-                b = Token(Token_Kind.INT, a*a)
-                stack.append(b)
+                b = a*a
+                stack.append(make_token(b))
             elif token.value == "if":
-                assert not len(
-                    stack) < 3, "Not enough arguments for if function"
+                assert not len(stack) < 3, "Not enough arguments for if function"
                 false_val = stack.pop().value
                 true_val = stack.pop().value
                 condition = stack.pop().value
-                if condition != 0:
-                    stack.append(Token(Token_Kind.INT, true_val))
+                if condition:
+                    stack.append(make_token(true_val))
                 else:
-                    stack.append(Token(Token_Kind.INT, false_val))
+                    stack.append(make_token(false_val))
             else:
                 raise NotImplementedError(
                     f"Cannot evaluate unknown function: {token}")
-
         else:
             raise NotImplementedError(
                 f"Cannot evaluate unknown token: {token}")
