@@ -242,6 +242,10 @@ def validate(tokens: List[Token]):
             else:
                 assert False, f"Unknown grammar token {token}"
         
+        if len(structure)%2 == 0:
+            print("Invalid syntax")
+            return False
+
         for i,elem in enumerate(structure):
             if not elem == i%2:
                 print("Invalid syntax")
