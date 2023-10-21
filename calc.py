@@ -197,8 +197,7 @@ def tokenize(s: str) -> List[Token]:
 
     return tokens
 
-# TODO: Once input is tokenized, validate against grammar
-# eg 6 ( * 8) is valid and returns 48.
+
 def validate(tokens: List[Token]):
     def test_all(tokens:List[Token],tests:List[Callable]):
         for test in tests:
@@ -341,6 +340,7 @@ def parse(tokens: List[Token]) -> List[Token]:
 
 
 def make_token(a:Union[int,float])-> Token:
+    # piggyback off of python's type system... for now.
     if isinstance(a, int):
         return Token(Token_Kind.INT,a)
     elif isinstance(a, float):
