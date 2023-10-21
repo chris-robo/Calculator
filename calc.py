@@ -20,7 +20,7 @@ class Token_Kind(enum.Enum):
 class Token:
     kind: Token_Kind
     value: Union[int, str]
-    
+
     def __str__(self):
         return f"Token(kind={self.kind:20}, value={self.value})"
 
@@ -121,6 +121,11 @@ def tokenize(s: str) -> List[Token]:
 
     return tokens
 
+# TODO: Once input is tokenized, validate against grammar
+# eg 6 ( * 8) is valid and returns 48.
+def validate(tokens: List[Token]):
+    pass
+
 
 op_prec = {
     Token_Kind.COMMA: 0,
@@ -149,17 +154,19 @@ OP_KINDS = [
 
 def parse(tokens: List[Token]) -> List[Token]:
     '''Translate infix notation to postfix notation.'''
-    ops: List[Token] = []
-    out: List[Token] = []
 
     def peek(stack):
         assert stack, "Peek from empty stack."
         return stack[-1]
+
+
+    ops: List[Token] = []
+    out: List[Token] = []
+
     for token in tokens:
         if token.kind in LIT_KINDS:
             out.append(token)
         elif token.kind in OP_KINDS:
-            # ...
             while ops and peek(ops).kind not in [Token_Kind.LPAREN, Token_Kind.COMMA] and not op_prec[peek(ops).kind] < op_prec[token.kind]:
                 out.append(ops.pop())
             ops.append(token)
@@ -171,7 +178,7 @@ def parse(tokens: List[Token]) -> List[Token]:
                     out.append(ops.pop())
             if ops and peek(ops).kind == Token_Kind.FUNC:
                 out.append(ops.pop())
-            lp = ops.pop()
+            assert ops.pop().kind == Token_Kind.LPAREN
         else:
             raise NotImplementedError(f"Unparsable token: {token}")
 
@@ -240,19 +247,30 @@ def calculate(s: str):
     return res.value
 
 
+def print_tokens(tokens:List[Token]):
+    print(" ".join(str(token.value) for token in tokens))
+
+# TODO: validate
+
 if __name__ == "__main__":
-    tokens = tokenize("1    +3*9*((7) + 3) ")  # 271
+    # while True:
+    #     print(calculate(input("> ")))
+    source = "1    +3*9*((7) + 3) "
+    tokens = tokenize(source)  # 271
     # tokens = tokenize("1 + sq(2)")
     # tokens = tokenize("1    +3*9*sq((7) + 3) ") # 2701
     # tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)") # 1000010
     # tokens = tokenize("if(1,if(if(0,0,1),2,3),4)") # =2
-    for token in tokens:
-        print(token)
+
+    print_tokens(tokens)
+    # for token in tokens:
+    #     print(token)
 
     instr = parse(tokens)
     print()
-    for token in instr:
-        print(token)
+    print_tokens(instr)
 
-    result = evaluate(instr)
+    result = evaluate(instr).value
     print(f"{result=}")
+
+    print(calculate(source))
