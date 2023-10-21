@@ -155,7 +155,7 @@ def validate(tokens: List[Token]):
 
 
 op_prec = {
-    Token_Kind.COMMA: 0,
+    Token_Kind.COMMA: 0, # TODO: compare this to precedence 4
     Token_Kind.PLUS: 1,
     Token_Kind.MINUS: 1,
     Token_Kind.ASTERISK: 2,
@@ -285,24 +285,25 @@ def terminal():
             print(r)
 
 if __name__ == "__main__":
-    # terminal()
+    terminal()
     # source = "1    +3*9*((7) + 3) "
-    source = "sq(sq(2))"
-    tokens = tokenize(source)  # 271
+    # source = "sq(sq(2))"
+    # source = "sq(if(1,10*1/1+1-1,20))"
+    # tokens = tokenize(source)  # 271
     # tokens = tokenize("1 + sq(2)")
     # tokens = tokenize("1    +3*9*sq((7) + 3) ") # 2701
     # tokens = tokenize("10+if(1,sq(if(1,1000,5)),10)") # 1000010
     # tokens = tokenize("if(1,if(if(0,0,1),2,3),4)") # =2
 
-    print_tokens(tokens)
-    # for token in tokens:
-    #     print(token)
+    # print_tokens(tokens)
+    # # for token in tokens:
+    # #     print(token)
 
-    instr = parse(tokens)
-    print()
-    print_tokens(instr)
+    # instr = parse(tokens)
+    # print()
+    # print_tokens(instr)
 
-    result = evaluate(instr).value
-    print(f"{result=}")
+    # result = evaluate(instr).value
+    # print(f"{result=}")
 
-    print(calculate(source))
+    # print(calculate(source))
