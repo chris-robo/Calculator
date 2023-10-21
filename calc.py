@@ -3,7 +3,7 @@ import enum
 
 import dataclasses
 
-## TODO: add floating point support
+
 class Token_Kind(enum.Enum):
     INT = enum.auto(),
     FLOAT = enum.auto(),
@@ -58,7 +58,7 @@ def match_float(s:str) -> Tuple[str,str]:
     _, s = s[:1], s[1:]
 
 
-    flt_frac, s = match_digits(s) # this can be empty, as in 1.
+    flt_frac, s = match_digits(s) # this can be empty, as in '1.'
 
 
     flt_str = f"{flt_int}.{flt_frac}"
@@ -200,14 +200,14 @@ def tokenize(s: str) -> List[Token]:
 # TODO: Once input is tokenized, validate against grammar
 # eg 6 ( * 8) is valid and returns 48.
 def validate(tokens: List[Token]):
-    def test_all(tests:List[Callable]):
+    def test_all(tokens:List[Token],tests:List[Callable]):
         for test in tests:
-            if not test:
+            if not test(tokens):
                 return False
         return True
 
 
-    def validate_scopes(tokens: List[Token]):
+    def validate_scopes(tokens: List[Token])->bool:
         depth = 0
         for token in tokens:
             if token.kind == Token_Kind.LPAREN:
@@ -223,9 +223,37 @@ def validate(tokens: List[Token]):
             print("Unmatched left parenthesis")
             return False
         return True
+    
+    def validate_grammar(tokens:List[Token])->bool:
+        GRAMMAR_LIT = 0
+        GRAMMAR_OP = 1
+        structure = []
+        for token in tokens:
+            if token.kind in LIT_KINDS:
+                structure.append(GRAMMAR_LIT)
+            elif token.kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintins the grammar structure
+                structure.append(GRAMMAR_LIT)
+                structure.append(GRAMMAR_OP)
+            elif token.kind == Token_Kind.RPAREN:   # '(' ->  <op>, <lit> maintins the grammar structure
+                structure.append(GRAMMAR_OP)
+                structure.append(GRAMMAR_LIT)
+            elif token.kind in OP_KINDS:
+                structure.append(GRAMMAR_OP)
+            else:
+                assert False, f"Unknown grammar token {token}"
+        
+        for i,elem in enumerate(structure):
+            if not elem == i%2:
+                print("Invalid syntax")
+                return False
+        return True
 
+        pass
 
-    return test_all([validate_scopes(tokens)])
+    return test_all(tokens,[
+        validate_scopes,
+        validate_grammar,
+    ])
     
 
 LIT_KINDS = [
@@ -234,11 +262,11 @@ LIT_KINDS = [
     Token_Kind.STRING,
 ]
 
-# higher = more precise
-LIT_PREC = {
-    Token_Kind.INT:0,
-    Token_Kind.FLOAT:1,
-}
+# # higher = more precise
+# LIT_PREC = {
+#     Token_Kind.INT:0,
+#     Token_Kind.FLOAT:1,
+# }
 
 OP_PREC = {
     Token_Kind.COMMA: 0, # TODO: compare this to precedence 4
