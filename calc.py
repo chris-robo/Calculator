@@ -73,8 +73,8 @@ def match_escape_sequence(s:str):
     start = s
     if not (s and s[0] == "\\"):
         return "",start
-    _, s = s[:1], s[1,]
-    c, s = s[:1], s[1,]
+    _, s = s[:1], s[1:]
+    c, s = s[:1], s[1:]
     if c == "\\":
         return "\\",s
     elif c == "n":
