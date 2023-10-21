@@ -57,9 +57,7 @@ def match_float(s:str) -> Tuple[str,str]:
 
     _, s = s[:1], s[1:]
 
-
     flt_frac, s = match_digits(s) # this can be empty, as in '1.'
-
 
     flt_str = f"{flt_int}.{flt_frac}"
     return flt_str, s
@@ -199,12 +197,6 @@ def tokenize(s: str) -> List[Token]:
 
 
 def validate(tokens: List[Token]):
-    def test_all(tokens:List[Token],tests:List[Callable]):
-        for test in tests:
-            if not test(tokens):
-                return False
-        return True
-
 
     def validate_scopes(tokens: List[Token])->bool:
         depth = 0
@@ -235,13 +227,16 @@ def validate(tokens: List[Token]):
             if kind in LIT_KINDS:
                 structure.append(GRAMMAR_LIT)
             elif kind == Token_Kind.FUNC:
+                if not i+1 < len(kinds) or kinds[i+1] != Token_Kind.LPAREN:
+                    print(f"Function '{tokens[i].value}' does not have an argument list.")
+                    return False
                 structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
             elif kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintains the grammar structure
                 structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
             elif kind == Token_Kind.RPAREN:   # ')' ->  <op>, <lit> maintains the grammar structure
-                if i-2 >= 0 and [kinds[i-2],kinds[i-1]] == [Token_Kind.FUNC, Token_Kind.LPAREN]:
+                if i-2 >= 0 and kinds[i-2:i] == [Token_Kind.FUNC, Token_Kind.LPAREN]:
                     # handle edge case 'f()'
                     structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
@@ -263,12 +258,90 @@ def validate(tokens: List[Token]):
                 print("Invalid syntax")
                 return False
         return True
+    
+    def validate_functions(tokens:List[Token]):
+
+        FUNC_OPCOUNT = {
+            "sq":1,
+            "if":3,
+            "type":1,
+        }
+        def match_scope(tokens:List[Token]):
+            if not (tokens and tokens[0].kind == Token_Kind.LPAREN):
+                return [],tokens
+
+            depth = 1
+             
+            for i,token in enumerate(tokens[1:]):
+                if token.kind == Token_Kind.LPAREN:
+                    depth += 1
+                elif token.kind == Token_Kind.RPAREN:
+                    depth -= 1
+                
+                if depth == 0:
+                    return tokens[:i+2],tokens[i+2:]
+            return [], tokens
+
+        def split_exprlist(tokens:List[Token]):
+            lp, *exprl, rp = tokens
+            assert lp.kind == Token_Kind.LPAREN
+            assert rp.kind == Token_Kind.RPAREN
+            if len(exprl) == 0:
+                return []
+            
+            exprs = []
+            expr = list()
+            depth = 0
+            for token in exprl:
+                if token.kind == Token_Kind.LPAREN:
+                    depth += 1
+                    expr.append(token)
+                elif token.kind == Token_Kind.RPAREN:
+                    depth -= 1
+                    expr.append(token)
+                elif token.kind == Token_Kind.COMMA:
+                    if depth == 0:
+                        exprs.append(expr)
+                        expr = list()
+                    else:
+                        expr.append(token)
+                else:
+                    expr.append(token)
+            
+            exprs.append(expr)
+            return exprs
+        
+        while tokens:
+            token = tokens[0]
+            if token.kind == Token_Kind.FUNC:
+                func, *tokens = tokens
+                exprl, tokens = match_scope(tokens)
+                exprs = split_exprlist(exprl)
+                if not FUNC_OPCOUNT[func.value] == len(exprs):
+                    plural = "argument" if FUNC_OPCOUNT[func.value] == 1 else "arguments"
+                    print(f"'{func.value}' expects {FUNC_OPCOUNT[func.value]} {plural} but got {len(exprs)}")
+                    return False
+                                
+                for expr in exprs:
+                    valid_subexpr = validate_functions(expr)
+                    if not valid_subexpr:
+                        return False
+            else:
+                _, *tokens = tokens
+                
+        return True
 
 
-    return test_all(tokens,[
+    tests=[
         validate_scopes,
         validate_grammar,
-    ])
+        validate_functions,
+    ]
+
+    for test in tests:
+        if not test(tokens):
+            return False
+    return True
     
 
 LIT_KINDS = [
@@ -276,12 +349,6 @@ LIT_KINDS = [
     Token_Kind.FLOAT,
     Token_Kind.STRING,
 ]
-
-# # higher = more precise
-# LIT_PREC = {
-#     Token_Kind.INT:0,
-#     Token_Kind.FLOAT:1,
-# }
 
 OP_PREC = {
     Token_Kind.COMMA: 0, # TODO: compare this to precedence 4
