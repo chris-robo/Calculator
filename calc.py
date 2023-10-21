@@ -225,23 +225,36 @@ def validate(tokens: List[Token]):
         return True
     
     def validate_grammar(tokens:List[Token])->bool:
+        # grammar in this case refers to the order of literals <lit> and operators <op>.
+
         GRAMMAR_LIT = 0
         GRAMMAR_OP = 1
         structure = []
-        for token in tokens:
-            if token.kind in LIT_KINDS:
+
+        kinds = [token.kind for token in tokens]
+        for i,kind in enumerate(kinds):
+            if kind in LIT_KINDS:
                 structure.append(GRAMMAR_LIT)
-            elif token.kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintains the grammar structure
+            elif kind == Token_Kind.FUNC:
                 structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
-            elif token.kind == Token_Kind.RPAREN:   # '(' ->  <op>, <lit> maintains the grammar structure
+            elif kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintains the grammar structure
+                structure.append(GRAMMAR_LIT)
+                structure.append(GRAMMAR_OP)
+            elif kind == Token_Kind.RPAREN:   # ')' ->  <op>, <lit> maintains the grammar structure
+                if i-2 >= 0 and [kinds[i-2],kinds[i-1]] == [Token_Kind.FUNC, Token_Kind.LPAREN]:
+                    # handle edge case 'f()'
+                    structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
                 structure.append(GRAMMAR_LIT)
-            elif token.kind in OP_KINDS:
+            elif kind in OP_KINDS:
                 structure.append(GRAMMAR_OP)
             else:
-                assert False, f"Unknown grammar token {token}"
+                assert False, f"Unknown grammar token {tokens[i]}"
         
+        # a valid grammar follows the pattern <lit> <op> <lit> <op> ... <op> <lit>,
+        # alternating literals and operators, and starting and ending with a literal.
+
         if len(structure)%2 == 0:
             print("Invalid syntax")
             return False
@@ -252,7 +265,6 @@ def validate(tokens: List[Token]):
                 return False
         return True
 
-        pass
 
     return test_all(tokens,[
         validate_scopes,
