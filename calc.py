@@ -231,10 +231,10 @@ def validate(tokens: List[Token]):
         for token in tokens:
             if token.kind in LIT_KINDS:
                 structure.append(GRAMMAR_LIT)
-            elif token.kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintins the grammar structure
+            elif token.kind == Token_Kind.LPAREN:   # '(' -> <lit>, <op> maintains the grammar structure
                 structure.append(GRAMMAR_LIT)
                 structure.append(GRAMMAR_OP)
-            elif token.kind == Token_Kind.RPAREN:   # '(' ->  <op>, <lit> maintins the grammar structure
+            elif token.kind == Token_Kind.RPAREN:   # '(' ->  <op>, <lit> maintains the grammar structure
                 structure.append(GRAMMAR_OP)
                 structure.append(GRAMMAR_LIT)
             elif token.kind in OP_KINDS:
